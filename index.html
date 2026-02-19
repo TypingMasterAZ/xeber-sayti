@@ -2,57 +2,89 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <title>Report.az Xəbər Paneli</title>
+    <title>Mənim Xəbər Saytım</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1 { color: #d32f2f; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; }
-        .news-item { border-bottom: 1px solid #eee; padding: 15px 0; }
-        .news-item:last-child { border-bottom: none; }
-        .news-item a { text-decoration: none; color: #1a0dab; font-size: 18px; font-weight: bold; display: block; }
-        .news-item a:hover { text-decoration: underline; }
-        .date { font-size: 12px; color: #666; margin-bottom: 5px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        h1 { color: #2c3e50; text-align: center; cursor: pointer; }
+        .news-item { padding: 15px; border-bottom: 1px solid #eee; transition: 0.3s; }
+        .news-item:hover { background: #f9f9f9; cursor: pointer; }
+        .news-item h3 { margin: 5px 0; color: #1a73e8; }
+        .date { font-size: 12px; color: #888; }
+        #content-area { display: none; } /* Başlanğıcda gizli olur */
+        .back-btn { background: #eee; padding: 8px 15px; border-radius: 5px; cursor: pointer; display: inline-block; margin-bottom: 20px; }
+        img { max-width: 100%; height: auto; border-radius: 8px; } /* Xəbər şəkilləri üçün */
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Report.az - Son Xəbərlər</h1>
-    <div id="news-list">Yüklənir...</div>
+    <h1 onclick="location.reload()">Xəbər Portalı</h1>
+    
+    <div id="list-area">
+        <div id="news-list">Yüklənir...</div>
+    </div>
+
+    <div id="content-area">
+        <div class="back-btn" onclick="showList()">← Geri qayıt</div>
+        <h2 id="news-full-title"></h2>
+        <div id="news-full-content"></div>
+    </div>
 </div>
 
 <script>
-    async function getNews() {
+    // 1. Siyahını gətir
+    async function getNewsList() {
         try {
-            // İndi məlumatı birbaşa öz serverimizdən (API) alırıq
             const response = await fetch('/api/news');
             const xmlText = await response.text();
-            
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlText, "text/xml");
             const items = xmlDoc.querySelectorAll("item");
 
             let html = "";
-            items.forEach((item, index) => {
-                if (index < 15) {
-                    const title = item.querySelector("title").textContent;
-                    const link = item.querySelector("link").textContent;
-                    const pubDate = item.querySelector("pubDate").textContent;
+            items.forEach((item) => {
+                const title = item.querySelector("title").textContent;
+                const link = item.querySelector("link").textContent;
+                const pubDate = item.querySelector("pubDate").textContent;
 
-                    html += `
-                        <div class="news-item">
-                            <div class="date">${pubDate}</div>
-                            <a href="${link}" target="_blank">${title}</a>
-                        </div>
-                    `;
-                }
+                html += `
+                    <div class="news-item" onclick="showDetail('${link}')">
+                        <div class="date">${pubDate}</div>
+                        <h3>${title}</h3>
+                    </div>
+                `;
             });
             document.getElementById("news-list").innerHTML = html;
         } catch (error) {
-            document.getElementById("news-list").innerHTML = "Xəta: Xəbərlər gəlmədi.";
+            document.getElementById("news-list").innerHTML = "Xəta baş verdi.";
         }
     }
-    getNews();
+
+    // 2. Xəbərin özünü göstər
+    async function showDetail(url) {
+        document.getElementById("list-area").style.display = "none";
+        document.getElementById("content-area").style.display = "block";
+        document.getElementById("news-full-content").innerHTML = "Məzmun yüklənir...";
+        document.getElementById("news-full-title").innerText = "";
+
+        try {
+            const response = await fetch(`/api/news-detail?url=${encodeURIComponent(url)}`);
+            const data = await response.json();
+
+            document.getElementById("news-full-title").innerText = data.title;
+            document.getElementById("news-full-content").innerHTML = data.content;
+        } catch (error) {
+            document.getElementById("news-full-content").innerHTML = "Məqalə oxuna bilmədi.";
+        }
+    }
+
+    function showList() {
+        document.getElementById("list-area").style.display = "block";
+        document.getElementById("content-area").style.display = "none";
+    }
+
+    getNewsList();
 </script>
 </body>
 </html>
