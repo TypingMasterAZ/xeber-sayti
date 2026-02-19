@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <title>Report.az Xəbər Paneli</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #d32f2f; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .news-item { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .news-item:last-child { border-bottom: none; }
+        .news-item a { text-decoration: none; color: #1a0dab; font-size: 18px; font-weight: bold; display: block; }
+        .news-item a:hover { text-decoration: underline; }
+        .date { font-size: 12px; color: #666; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Report.az - Son Xəbərlər</h1>
+    <div id="news-list">Yüklənir...</div>
+</div>
+
+<script>
+    async function getNews() {
+        try {
+            // İndi məlumatı birbaşa öz serverimizdən (API) alırıq
+            const response = await fetch('/api/news');
+            const xmlText = await response.text();
+            
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const items = xmlDoc.querySelectorAll("item");
+
+            let html = "";
+            items.forEach((item, index) => {
+                if (index < 15) {
+                    const title = item.querySelector("title").textContent;
+                    const link = item.querySelector("link").textContent;
+                    const pubDate = item.querySelector("pubDate").textContent;
+
+                    html += `
+                        <div class="news-item">
+                            <div class="date">${pubDate}</div>
+                            <a href="${link}" target="_blank">${title}</a>
+                        </div>
+                    `;
+                }
+            });
+            document.getElementById("news-list").innerHTML = html;
+        } catch (error) {
+            document.getElementById("news-list").innerHTML = "Xəta: Xəbərlər gəlmədi.";
+        }
+    }
+    getNews();
+</script>
+</body>
+</html>
